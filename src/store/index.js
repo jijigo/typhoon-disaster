@@ -7,7 +7,8 @@ export default new Vuex.Store({
     state: {
         originData: [],
         cases: [],
-        filterDistrict: ''
+        filterDistrict: "所有區域",
+        filterType: "所有災情"
     },
     getters: {
         loadingState: state => state.loading,
@@ -15,8 +16,13 @@ export default new Vuex.Store({
             return state.originData
                 // .filter(item => !item.CaseComplete)
                 .filter(item => {
-                    return state.filterDistrict
+                    return state.filterDistrict !== "所有區域"
                         ? state.filterDistrict === item.CaseLocationDistrict
+                        : item;
+                })
+                .filter(item => {
+                    return state.filterType !== "所有災情"
+                        ? state.filterType === item.PName
                         : item;
                 })
                 .map(item => {
@@ -46,7 +52,10 @@ export default new Vuex.Store({
         },
         setFilterDistrict(context, value) {
             context.commit('setFilterDistrict', value);
-        }
+        },
+        setFilterType(context, value) {
+            context.commit('setFilterType', value);
+        },
     },
     mutations: {
         SET_LOADING: (state, value) => {
@@ -57,6 +66,9 @@ export default new Vuex.Store({
         },
         setFilterDistrict: (state, value) => {
             state.filterDistrict = value;
+        },
+        setFilterType: (state, value) => {
+            state.filterType = value;
         }
     }
 });

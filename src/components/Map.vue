@@ -1,5 +1,5 @@
 <template lang="pug">
-    l-map(ref="map", :zoom="zoom", :max-zoom="16" :center="center", style="height: 500px")
+    l-map(ref="map", :zoom="zoom", :bounds="bounds", :max-zoom="16" :center="center", style="height: 500px")
         l-tile-layer(:url="url", :attribution="attribution")
         // l-geo-json(v-for="(geoJson, index) in taipeiGeo", :key="index", :geojson="geoJson", :options="geoJsonOptions")
         l-marker-cluster(:options="clusterOptions")
@@ -46,17 +46,6 @@ import meteorite from "@/assets/meteorite.svg";
 import windstorm from "@/assets/windstorm.svg";
 import iceberg from "@/assets/windstorm.svg";
 
-var greenIcon = new L.Icon({
-  iconUrl:
-    "https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
 export default {
   components: {
     LMap,
@@ -69,6 +58,13 @@ export default {
   computed: {
     cases() {
       return store.getters.cases;
+    },
+    bounds() {
+      // if (!this.cases) return;
+      // let casePos = _.map(this.cases, item => {
+      //   return L.latLng(item.position.lat, item.position.lng);
+      // });
+      // return L.latLngBounds(casePos);
     }
   },
   data() {
@@ -79,11 +75,10 @@ export default {
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       taipeiGeo: taipeiGeo.features,
-      greenIcon,
       clusterOptions: {
         maxClusterRadius: 50,
         disableClusteringAtZoom: 17,
-        spiderLegPolylineOptions: { weight: 1.5, color: "#222", opacity: 0 },
+        spiderLegPolylineOptions: { weight: 1.5, color: "#495060", opacity: 0 },
         iconCreateFunction: cluster => {
           return L.divIcon({
             html: '<div class="circle">' + cluster.getChildCount() + "</div>",
@@ -118,7 +113,7 @@ export default {
   mounted() {
     L.geoJSON(taipeiGeo, {
       style: {
-        color: "#ff7800",
+        color: "#495060",
         weight: 5,
         opacity: 0.65
       }
@@ -176,7 +171,7 @@ export default {
 
 .circle
   border-radius: 50%;
-  background: #32ccbc;
+  background: rgba(110, 123, 155, .8);
   width: 35px;
   height: 35px;
   line-height: 35px;
