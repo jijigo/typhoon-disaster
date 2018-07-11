@@ -1,33 +1,50 @@
 <template lang="pug">
-    l-map(ref="map", :zoom="zoom", :min-zoom="11" :center="center", style="height: 500px")
+    l-map(ref="map", :zoom="zoom", :max-zoom="16" :center="center", style="height: 500px")
         l-tile-layer(:url="url", :attribution="attribution")
-        l-marker(v-for="(m, index) in cases"
+        // l-geo-json(v-for="(geoJson, index) in taipeiGeo", :key="index", :geojson="geoJson", :options="geoJsonOptions")
+        l-marker-cluster(:options="clusterOptions")
+          l-marker(v-for="(m, index) in cases"
                 :key="index"
                 ref="markers"
-                :icon="greenIcon"
+                :icon="getIcon(m.type)"
                 :lat-lng="caseLatLng(m.position)")
-          l-popup(style="width: 300px;")
-            Card(:bordered="false")
-              Row
-                Col(span="8") 發生時間 : 
-                Col(span="16") {{ m.time }}
-              Row
-                Col(span="8") 受災地區 : 
-                Col(span="16") {{ m.district }}
-              Row
-                Col(span="8") 災害類型 :  
-                Col(span="16") {{ m.type }}
-              Row
-                Col(span="8") 災情描述 :   
-                Col(span="16") {{ m.description }}
+            l-popup(style="width: 300px;")
+              Card(:bordered="false")
+                Row
+                  Col(span="8") 發生時間 : 
+                  Col(span="16") {{ m.time }}
+                Row
+                  Col(span="8") 受災地區 : 
+                  Col(span="16") {{ m.district }}
+                Row
+                  Col(span="8") 受災地點 : 
+                  Col(span="16") {{ m.address }}
+                Row
+                  Col(span="8") 災害類型 :  
+                  Col(span="16") {{ m.type }}
+                Row
+                  Col(span="8") 災情描述 :   
+                  Col(span="16") {{ m.description }}
 </template>
 
 <script>
-import { LMap, LTileLayer, LMarker, LPopup } from "vue2-leaflet";
+import { LMap, LTileLayer, LMarker, LPopup, LGeoJson } from "vue2-leaflet";
 import "leaflet/dist/leaflet.css";
+import Vue2LeafletMarkerCluster from "vue2-leaflet-markercluster";
+
+// import "MarkerCluster.css";
+import markerClusterGroup from "leaflet.markercluster";
 import taipeiGeo from "@/config/taipeiGeo.json";
 import store from "@/store/index";
 import _ from "lodash";
+
+import landslide from "@/assets/landslide.svg";
+import twister from "@/assets/twister.svg";
+import earthquake from "@/assets/earthquake.svg";
+import flood from "@/assets/flood.svg";
+import meteorite from "@/assets/meteorite.svg";
+import windstorm from "@/assets/windstorm.svg";
+import iceberg from "@/assets/windstorm.svg";
 
 var greenIcon = new L.Icon({
   iconUrl:
@@ -45,19 +62,14 @@ export default {
     LMap,
     LTileLayer,
     LMarker,
-    LPopup
+    LPopup,
+    LMarkerCluster: Vue2LeafletMarkerCluster,
+    LGeoJson
   },
   computed: {
     cases() {
       return store.getters.cases;
     }
-    // markers() {
-    //   return _.map(this.cases, item => {
-    //     return {
-    //       position: L.latLng(item.position.lat, item.position.lng)
-    //     };
-    //   });
-    // }
   },
   data() {
     return {
@@ -67,77 +79,88 @@ export default {
       attribution:
         '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       taipeiGeo: taipeiGeo.features,
-      greenIcon
+      greenIcon,
+      clusterOptions: {
+        maxClusterRadius: 50,
+        disableClusteringAtZoom: 17,
+        spiderLegPolylineOptions: { weight: 1.5, color: "#222", opacity: 0 },
+        iconCreateFunction: cluster => {
+          return L.divIcon({
+            html: '<div class="circle">' + cluster.getChildCount() + "</div>",
+            className: "mycluster",
+            iconSize: L.point(32, 32)
+          });
+        }
+      },
+      // geoJsonOptions: {
+      //   onEachFeature: (feature, layer) => {
+      //     layer.getLatLng = () => {
+      //       return this.getBounds().getCenter();
+      //     };
+      //     layer.setLatLng = () => {};
+      //     layer._latlng = layer.getLatLng();
+      //   },
+      //   pointToLayer: (geoJsonPoint, latlng) => {
+      //     return L.marker(latlng);
+      //   }
+      // },
+      icons: {
+        landslide,
+        twister,
+        earthquake,
+        flood,
+        meteorite,
+        windstorm,
+        iceberg
+      }
     };
   },
   mounted() {
-    var states = [
-      {
-        type: "Feature",
-        properties: { party: "Republican" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [-104.05, 48.99],
-              [-97.22, 48.98],
-              [-96.58, 45.94],
-              [-104.03, 45.94],
-              [-104.05, 48.99]
-            ]
-          ]
-        }
-      },
-      {
-        type: "Feature",
-        properties: { party: "Democrat" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [-109.05, 41.0],
-              [-102.06, 40.99],
-              [-102.03, 36.99],
-              [-109.04, 36.99],
-              [-109.05, 41.0]
-            ]
-          ]
-        }
-      }
-    ];
-    var myLines = [
-      {
-        type: "LineString",
-        coordinates: [[-100, 40], [-105, 45], [-110, 55]]
-      },
-      {
-        type: "LineString",
-        coordinates: [[-105, 40], [-110, 45], [-115, 55]]
-      }
-    ];
-
-    var myStyle = {
-      color: "#fff",
-      weight: 5,
-      opacity: 0.65
-    };
-
     L.geoJSON(taipeiGeo, {
       style: {
         color: "#ff7800",
         weight: 5,
         opacity: 0.65
-      },
-      on: {
-        click() {
-          console.log("click");
-        }
       }
     }).addTo(this.$refs.map.mapObject);
   },
   methods: {
     caseLatLng(position) {
       return L.latLng(position.lat, position.lng);
+    },
+    getIcon(type) {
+      let iconName = "";
+      switch (type) {
+        case "路樹災情":
+          iconName = "windstorm";
+          break;
+        case "民生、基礎設施災情":
+          iconName = "twister";
+          break;
+        case "建物毀損":
+          iconName = "earthquake";
+          break;
+        case "積淹水災情":
+          iconName = "flood";
+          break;
+        case "環境汙染":
+          iconName = "iceberg";
+          break;
+        case "廣告招牌災情":
+          iconName = "meteorite";
+          break;
+        default:
+          iconName = "landslide";
+      }
+      return new L.Icon({
+        iconUrl: this.icons[iconName],
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
     }
   }
 };
@@ -150,4 +173,12 @@ export default {
     margin: 0
 .leaflet-popup-tip-container
   display: none
+
+.circle
+  border-radius: 50%;
+  background: #32ccbc;
+  width: 35px;
+  height: 35px;
+  line-height: 35px;
+  color: #fff;
 </style>
